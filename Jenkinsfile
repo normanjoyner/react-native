@@ -51,7 +51,7 @@ def runStages() {
         ]
     ]
 
-    node('docker-slave') {
+    node {
         try {
             stage('Build') {
                 checkout scm
