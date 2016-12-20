@@ -21,7 +21,7 @@ def buildDockerfile(dockerfilePath = "Dockerfile", imageName) {
 }
 
 def runCmdOnDockerImage(imageName, cmd) {
-    def result = sh(script: "docker run -i ${imageName} sh -c '${cmd}'", returnStatus: true)
+    def result = sh(script: "docker run --net=host -i ${imageName} sh -c '${cmd}'", returnStatus: true)
 
     if(result != 0) {
         throw new Exception("Failed to run cmd[${cmd}] on image[${imageName}]")
