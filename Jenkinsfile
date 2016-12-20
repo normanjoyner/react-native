@@ -66,18 +66,16 @@ def runStages() {
                 buildDockerfile('Dockerfile', "${buildInfo.image.name}:${buildInfo.image.tag}")
             }
 
-            parallel(
-                lint: {
-                    stage('Flow Check') {
+            stage('Test') {
+                parallel(
+                    flow: {
                         runCmdOnDockerImage("${buildInfo.image.name}:${buildInfo.image.tag}", 'yarn run flow check')
-                    }
-                },
-                test: {
-                    stage('Testing') {
+                    },
+                    test: {
                         runCmdOnDockerImage("${buildInfo.image.name}:${buildInfo.image.tag}", 'yarn test --maxWorkers=4')
                     }
-                }
-            )
+                )
+            }
 
             stage('Cleanup') {
                 cleanupImage(buildInfo.image.name, buildInfo.image.tag)
