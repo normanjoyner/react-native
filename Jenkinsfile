@@ -10,7 +10,7 @@ def runPipeline() {
 }
 
 def buildDockerfile(dockerfilePath = "Dockerfile", imageName) {
-    def buildCmd = "docker build -f ${dockerfilePath} -t ${imageName}"
+    def buildCmd = "docker build -f ${dockerfilePath} -t ${imageName} ."
     echo "${buildCmd}"
 
     def result = sh(script: buildCmd, returnStatus: true)
