@@ -69,12 +69,12 @@ def runStages() {
             parallel(
                 lint: {
                     stage('Flow Check') {
-                        runCmdOnDockerImage("${buildInfo.image.name}:${buildInfo.image.tag}", 'cd /app && yarn run flow check')
+                        runCmdOnDockerImage("${buildInfo.image.name}:${buildInfo.image.tag}", 'yarn run flow check')
                     }
                 },
                 test: {
                     stage('Testing') {
-                        runCmdOnDockerImage("${buildInfo.image.name}:${buildInfo.image.tag}", 'cd /app && yarn test --maxWorkers=4')
+                        runCmdOnDockerImage("${buildInfo.image.name}:${buildInfo.image.tag}", 'yarn test --maxWorkers=4')
                     }
                 }
             )
