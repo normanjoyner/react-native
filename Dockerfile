@@ -1,5 +1,6 @@
-FROM mhart/alpine-node:6.9.2
+FROM library/node:6.9.2
 
+RUN apt-get update && apt-get install ocaml libelf-dev -y
 RUN mkdir /app
 ADD . /app
 WORKDIR /app
