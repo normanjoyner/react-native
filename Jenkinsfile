@@ -107,4 +107,4 @@ def cleanupImage(imageName, tag) {
     }
 }
 
-return this
+runPipeline()
