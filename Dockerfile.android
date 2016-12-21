@@ -1,0 +1,6 @@
+FROM normanjoyner/react-native:android-experimental
+
+ENV ANDROID_HOME=/home/ubuntu/android
+
+RUN $ANDROID_HOME/tools/emulator -avd testAVD -no-skin -no-audio -no-window: background: true
+RUN bash -c "source scripts/circle-ci-android-setup.sh && waitForAVD"
