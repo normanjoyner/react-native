@@ -1,0 +1,70 @@
+FROM library/ubuntu:16.04
+
+# environment variables
+ENV GRADLE_OPTS="-Dorg.gradle.jvmargs=\"-Xmx512m -XX:+HeapDumpOnOutOfMemoryError\""
+
+# install system dependencies
+RUN apt-get update && apt-get install ant autoconf automake expect g++ gcc git libqt5widgets5 make maven npm openjdk-8* python-dev python3-dev qml-module-qtquick-controls qtdeclarative5-dev -y
+#RUN apk update && apk add apache-ant autoconf automake expect g++ gcc git libqt5widgets5 make npm python-dev python3-dev qml-module-qtquick-controls qtdeclarative5-dev -y
+
+# install npm
+#RUN npm install n -g
+#RUN n 6.2.0
+
+# clone and configure buck
+RUN git clone https://github.com/facebook/buck.git /home/ubuntu/buck
+WORKDIR /home/ubuntu/buck
+RUN ./bin/buck --version
+
+# clone and configure watchman
+RUN git clone https://github.com/facebook/watchman.git /home/ubuntu/watchman
+WORKDIR /home/ubuntu/watchman
+RUN git checkout v4.7.0
+RUN ./autogen.sh
+RUN ./configure
+RUN make
+RUN make install
+
+RUN apt-get install curl
+
+RUN mkdir /home/ubuntu/android
+WORKDIR /home/ubuntu/android
+RUN curl --silent https://dl.google.com/android/repository/tools_r25.2.3-linux.zip > android.zip
+RUN unzip android.zip
+RUN rm android.zip
+
+# set environment variables
+ENV ANDROID_HOME=/home/ubuntu/android
+ENV PATH=${PATH}:${ANDROID_HOME}/tools:${ANDROID_HOME}/platform-tools
+
+RUN echo "y" | android update sdk -u -a -t 12,35,39,166
+RUN echo "y" | android update sdk -u -a  --filter sys-img-armeabi-v7a-android-19,sys-img-x86_64-android-19
+
+RUN mkdir /home/ubuntu/ndk
+WORKDIR /home/ubuntu/ndk
+RUN curl --silent https://dl.google.com/android/repository/android-ndk-r13b-linux-x86_64.zip > ndk.zip
+RUN unzip ndk.zip
+RUN rm ndk.zip
+
+ENV ANDROID_NDK=/home/ubuntu/ndk/android-ndk-r13b
+ENV PATH=${PATH}:${ANDROID_NDK}
+
+# add react-native code
+ADD . /app
+WORKDIR /app
+
+# run buck fetches
+RUN /home/ubuntu/buck/bin/buck fetch ReactAndroid/src/test/java/com/facebook/react/modules
+RUN /home/ubuntu/buck/bin/buck fetch ReactAndroid/src/main/java/com/facebook/react
+RUN /home/ubuntu/buck/bin/buck fetch ReactAndroid/src/main/java/com/facebook/react/shell
+RUN /home/ubuntu/buck/bin/buck fetch ReactAndroid/src/test/...
+RUN /home/ubuntu/buck/bin/buck fetch ReactAndroid/src/androidTest/...
+RUN expect -c "spawn bash -c \"source scripts/circle-ci-android-setup.sh && getAndroidSDK\"; expect \"*create a custom hardware profile*\"; send -- \"no\r\"; expect eof"
+RUN ./gradlew :ReactAndroid:downloadBoost :ReactAndroid:downloadDoubleConversion :ReactAndroid:downloadFolly :ReactAndroid:downloadGlog
+
+# build node dependencies
+RUN npm config set spin=false
+RUN npm config set progress=false
+RUN npm install
+RUN npm install github@0.2.4
+RUN cd website && npm install
