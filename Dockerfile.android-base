@@ -25,7 +25,7 @@ RUN ./configure
 RUN make
 RUN make install
 
-RUN apt-get install curl
+RUN apt-get install curl unzip
 
 RUN mkdir /home/ubuntu/android
 WORKDIR /home/ubuntu/android
@@ -36,6 +36,13 @@ RUN rm android.zip
 # set environment variables
 ENV ANDROID_HOME=/home/ubuntu/android
 ENV PATH=${PATH}:${ANDROID_HOME}/tools:${ANDROID_HOME}/platform-tools
+
+# RUN echo y | android update sdk -u -a -t android-19 &&
+# RUN echo y | android update sdk -u -a -t platform-tools &&
+# RUN echo y | android update sdk -u -a -t build-tools-21.1.2 &&
+# RUN echo y | android update sdk -u -a -t extra-android-m2repository &&
+# RUN echo y | android update sdk -u -a -t extra-android-support &&
+# RUN echo y | android update sdk -u -a -t extra-google-m2repository &&
 
 RUN echo "y" | android update sdk -u -a -t 12,35,39,166
 RUN echo "y" | android update sdk -u -a  --filter sys-img-armeabi-v7a-android-19,sys-img-x86_64-android-19
@@ -59,7 +66,9 @@ RUN /home/ubuntu/buck/bin/buck fetch ReactAndroid/src/main/java/com/facebook/rea
 RUN /home/ubuntu/buck/bin/buck fetch ReactAndroid/src/main/java/com/facebook/react/shell
 RUN /home/ubuntu/buck/bin/buck fetch ReactAndroid/src/test/...
 RUN /home/ubuntu/buck/bin/buck fetch ReactAndroid/src/androidTest/...
+
 RUN expect -c "spawn bash -c \"source scripts/circle-ci-android-setup.sh && getAndroidSDK\"; expect \"*create a custom hardware profile*\"; send -- \"no\r\"; expect eof"
+
 RUN ./gradlew :ReactAndroid:downloadBoost :ReactAndroid:downloadDoubleConversion :ReactAndroid:downloadFolly :ReactAndroid:downloadGlog
 
 # build node dependencies
