@@ -32,6 +32,7 @@ RUN curl --silent https://dl.google.com/android/repository/tools_r25.2.3-linux.z
 RUN unzip android.zip
 RUN rm android.zip
 ENV ANDROID_HOME=/home/ubuntu/android
+ENV ANDROID_SDK_HOME=${ANDROID_HOME}
 ENV PATH=${PATH}:${ANDROID_HOME}/tools:${ANDROID_HOME}/platform-tools
 
 # add sdk tools
@@ -41,8 +42,9 @@ ENV PATH=${PATH}:${ANDROID_HOME}/tools:${ANDROID_HOME}/platform-tools
 # 39- SDK Platform Android 4.4.2, API 19, revision 4
 # 102- ARM EABI v7a System Image, Android API 19, revision 5
 # 103- Intel x86 Atom System Image, Android API 19, revision 5
+# 131- Google APIs, Android API 23, revision 1
 # 166- Android Support Repository, revision 41
-RUN echo "y" | android update sdk -u -a -t 2,12,35,39,102,103,166
+RUN echo "y" | android update sdk -u -a -t 2,12,35,39,102,103,131,166
 RUN ln -s /home/ubuntu/android/platform-tools/adb /usr/bin/adb
 
 # install NDK
