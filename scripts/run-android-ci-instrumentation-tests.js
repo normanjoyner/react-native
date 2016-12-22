@@ -21,7 +21,8 @@
  * --retries [num] - how many times to retry possible flaky commands: npm install and running tests, default 1
  */
 /*eslint-disable no-undef */
-require('shelljs/global');
+//https://github.com/shelljs/shelljs/issues/51
+//require('shelljs/global');
 
 const argv = require('yargs').argv;
 const numberOfRetries = argv.retries || 1;
