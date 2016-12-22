@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# set -ex
+set -x
 
 emulator64-arm -avd testAVD -no-skin -no-audio -no-window &
 source scripts/circle-ci-android-setup.sh && waitForAVD
@@ -28,4 +28,5 @@ REACT_NATIVE_MAX_WORKERS=1 node local-cli/cli.js bundle --platform android --dev
 /home/ubuntu/buck/bin/buck install ReactAndroid/src/androidTest/buck-runner:instrumentation-tests --config build.threads=1
 
 # run installed apk with tests
-node ./scripts/run-android-ci-instrumentation-tests.js --retries 3 --path ./ReactAndroid/src/androidTest/java/com/facebook/react/tests --package com.facebook.react.tests
+# temporarily disabled
+# node ./scripts/run-android-ci-instrumentation-tests.js --retries 3 --path ./ReactAndroid/src/androidTest/java/com/facebook/react/tests --package com.facebook.react.tests

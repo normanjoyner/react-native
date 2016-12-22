@@ -25,11 +25,10 @@
 //require('shelljs/global');
 
 const argv = require('yargs').argv;
-const numberOfRetries = argv.retries || 1;
-const tryExecNTimes = require('./try-n-times');
-const path = require('path');
+const child_process = require('child_process');
 
 // ReactAndroid/src/androidTest/java/com/facebook/react/tests/ReactHorizontalScrollViewTestCase.java
+/*
 const testClasses = ls(`${argv.path}/*.java`)
 .map(javaFile => {
   // ReactHorizontalScrollViewTestCase
@@ -38,22 +37,39 @@ const testClasses = ls(`${argv.path}/*.java`)
   // com.facebook.react.tests.ReactHorizontalScrollViewTestCase
   return argv.package + '.' + className;
 });
+*/
+
+const testClasses = [ 'com.facebook.react.tests.CatalystMeasureLayoutTest',
+  'com.facebook.react.tests.CatalystMultitouchHandlingTestCase',
+  'com.facebook.react.tests.CatalystNativeJSToJavaParametersTestCase',
+  'com.facebook.react.tests.CatalystNativeJavaToJSArgumentsTestCase',
+  'com.facebook.react.tests.CatalystSubviewsClippingTestCase',
+  'com.facebook.react.tests.CatalystTouchBubblingTestCase',
+  'com.facebook.react.tests.CatalystUIManagerTestCase',
+  'com.facebook.react.tests.DatePickerDialogTestCase',
+  'com.facebook.react.tests.InitialPropsTestCase',
+  'com.facebook.react.tests.JSLocaleTest',
+  'com.facebook.react.tests.JSResponderTestCase',
+  'com.facebook.react.tests.LayoutEventsTestCase',
+  'com.facebook.react.tests.ProgressBarTestCase',
+  'com.facebook.react.tests.ReactHorizontalScrollViewTestCase',
+  'com.facebook.react.tests.ReactPickerTestCase',
+  'com.facebook.react.tests.ReactRootViewTestCase',
+  'com.facebook.react.tests.ReactScrollViewTestCase',
+  'com.facebook.react.tests.ReactSwipeRefreshLayoutTestCase',
+  'com.facebook.react.tests.ShareTestCase',
+  'com.facebook.react.tests.TestIdTestCase',
+  'com.facebook.react.tests.TextInputTestCase',
+  'com.facebook.react.tests.TimePickerDialogTestCase',
+  'com.facebook.react.tests.ViewRenderingTestCase' ];
 
 let exitCode = 0;
 testClasses.forEach((testClass) => {
-  if (tryExecNTimes(
-    () => {
-      echo(`Starting ${testClass}`);
-      // any faster means Circle CI crashes
-      exec('sleep 10s');
-      return exec(`./scripts/run-instrumentation-tests-via-adb-shell.sh ${argv.package} ${testClass}`).code;
-    },
-    numberOfRetries)) {
-      echo(`${testClass} failed ${numberOfRetries} times`);
-      exitCode = 1;
-  }
+    child_process.exec(`./scripts/run-instrumentation-tests-via-adb-shell.sh ${argv.package} ${testClass}`, (err, stderr, stdout) => {
+        console.log(err);
+        console.log(stderr);
+        console.log(stdout);
+    });
 });
-
-exit(exitCode);
 
 /*eslint-enable no-undef */

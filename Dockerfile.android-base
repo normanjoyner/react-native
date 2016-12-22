@@ -67,7 +67,8 @@ RUN buck fetch ReactAndroid/src/main/java/com/facebook/react/shell
 RUN buck fetch ReactAndroid/src/test/...
 RUN buck fetch ReactAndroid/src/androidTest/...
 
-# todo remove expect
+RUN echo "y" | android update sdk -u -a -t 12
+#RUN expect -c "spawn bash -c \"source scripts/circle-ci-android-setup.sh && getAndroidSDK\"; expect \"*create a custom hardware profile*\"; send -- \"no\r\"; expect eof"
 RUN bash -c "source scripts/circle-ci-android-setup.sh && getAndroidSDK"
 
 RUN ./gradlew :ReactAndroid:downloadBoost :ReactAndroid:downloadDoubleConversion :ReactAndroid:downloadFolly :ReactAndroid:downloadGlog
