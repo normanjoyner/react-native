@@ -53,6 +53,8 @@ def runStages() {
 
     node {
         try {
+            def jsTag, androidTag, jsImageName, androidImageName
+
             stage('Build') {
                 checkout scm
 
@@ -63,25 +65,44 @@ def runStages() {
                 buildInfo.scm.isPR = githubInfo.isPR
                 buildInfo.image.tag = buildInfo.scm.sha
 
-                buildDockerfile('Dockerfile', "${buildInfo.image.name}:${buildInfo.image.tag}")
+                jsTag = "${buildInfo.image.tag}-js"
+                androidTag = "${buildInfo.image.tag}-android"
+                jsImageName = "${buildInfo.image.name}:${jsTag}"
+                androidImageName = "${buildInfo.image.name}:${androidTag}"
+
+                parallel(
+                    javascript: {
+                        buildDockerfile('Dockerfile.js', jsImageName)
+                    },
+                    android: {
+                        buildDockerfile('Dockerfile.android', androidImageName)
+                    }
+                )
+
             }
 
-            stage('Test') {
+            stage('Tests') {
                 parallel(
-                    flow: {
-                        runCmdOnDockerImage("${buildInfo.image.name}:${buildInfo.image.tag}", 'yarn run flow check')
+                    jsflow: {
+                        runCmdOnDockerImage(jsImageName, 'yarn run flow check')
                     },
-                    test: {
-                        runCmdOnDockerImage("${buildInfo.image.name}:${buildInfo.image.tag}", 'yarn test --maxWorkers=4')
+                    jstest: {
+                        runCmdOnDockerImage(jsImageName, 'yarn test --maxWorkers=4')
+                    },
+                    androidtests: {
+                        runCmdOnDockerImage(androidImageName, 'bash -c "test.sh"')
                     }
                 )
             }
 
+
             stage('Cleanup') {
-                cleanupImage(buildInfo.image.name, buildInfo.image.tag)
+                cleanupImage(buildInfo.image.name, jsTag)
+                cleanupImage(buildInfo.image.name, androidTag)
             }
         } catch(err) {
-            cleanupImage(buildInfo.image.name, buildInfo.image.tag)
+            cleanupImage(buildInfo.image.name, jsTag)
+            cleanupImage(buildInfo.image.name, androidTag)
             throw err
         }
     }
