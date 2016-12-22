@@ -4,7 +4,11 @@ FROM library/ubuntu:16.04
 ENV GRADLE_OPTS="-Dorg.gradle.jvmargs=\"-Xmx512m -XX:+HeapDumpOnOutOfMemoryError\""
 
 # install system dependencies
-RUN apt-get update && apt-get install ant autoconf automake curl expect g++ gcc git libqt5widgets5 lib32z1 lib32stdc++6 make maven npm openjdk-8* python-dev python3-dev qml-module-qtquick-controls qtdeclarative5-dev unzip -y
+RUN apt-get update && apt-get install ant autoconf automake curl g++ gcc git libqt5widgets5 lib32z1 lib32stdc++6 make maven npm openjdk-8* python-dev python3-dev qml-module-qtquick-controls qtdeclarative5-dev unzip -y
+
+# install node 6.2.0
+RUN npm install n -g
+RUN n 6.2.0
 
 # clone and configure buck
 RUN git clone https://github.com/facebook/buck.git /home/ubuntu/buck
@@ -32,13 +36,13 @@ ENV PATH=${PATH}:${ANDROID_HOME}/tools:${ANDROID_HOME}/platform-tools
 
 # add sdk tools
 # 2- Android SDK Platform-tools, revision 25.0.3
-# 10- Android SDK Build-tools, revision 23.0.3
+# 12- Android SDK Build-tools, revision 23.0.1
 # 35- SDK Platform Android 6.0, API 23, revision 3
 # 39- SDK Platform Android 4.4.2, API 19, revision 4
 # 102- ARM EABI v7a System Image, Android API 19, revision 5
 # 103- Intel x86 Atom System Image, Android API 19, revision 5
 # 166- Android Support Repository, revision 41
-RUN echo "y" | android update sdk -u -a -t 2,10,35,39,102,103,166
+RUN echo "y" | android update sdk -u -a -t 2,12,35,39,102,103,166
 RUN ln -s /home/ubuntu/android/platform-tools/adb /usr/bin/adb
 
 # install NDK
@@ -61,13 +65,12 @@ RUN buck fetch ReactAndroid/src/main/java/com/facebook/react/shell
 RUN buck fetch ReactAndroid/src/test/...
 RUN buck fetch ReactAndroid/src/androidTest/...
 
-RUN expect -c "spawn bash -c \"source scripts/circle-ci-android-setup.sh && getAndroidSDK\"; expect \"*create a custom hardware profile*\"; send -- \"no\r\"; expect eof"
+# todo remove expect
+RUN bash -c "source scripts/circle-ci-android-setup.sh && getAndroidSDK"
 
 RUN ./gradlew :ReactAndroid:downloadBoost :ReactAndroid:downloadDoubleConversion :ReactAndroid:downloadFolly :ReactAndroid:downloadGlog
 
 # build node dependencies
-RUN npm install n -g
-RUN n 6.2.0
 RUN npm config set spin=false
 RUN npm config set progress=false
 RUN npm install
