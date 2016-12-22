@@ -21,6 +21,7 @@ RUN echo "y" | android update sdk -u -a -t 131
 
 ENV ANDROID_SDK_ROOT=/home/ubuntu/android
 
-ADD scripts/run-android-ci-instrumentation-tests.js /app/scripts/run-android-ci-instrumentation-tests.js
+ADD test.sh /app/test.sh
+#ADD scripts/run-android-ci-instrumentation-tests.js /app/scripts/run-android-ci-instrumentation-tests.js
 
 CMD bash test.sh
