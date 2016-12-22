@@ -90,7 +90,7 @@ def runStages() {
                         runCmdOnDockerImage(jsImageName, 'yarn test --maxWorkers=4')
                     },
                     androidtests: {
-                        runCmdOnDockerImage(androidImageName, 'bash -c "test.sh"')
+                        runCmdOnDockerImage(androidImageName, 'bash /app/test.sh')
                     }
                 )
             }
