@@ -4,17 +4,21 @@
 
 emulator64-arm -avd testAVD -no-skin -no-audio -no-window &
 source scripts/circle-ci-android-setup.sh && waitForAVD
+export PATH=$PATH:/home/ubuntu/buck/bin/
+
+# for buck gen
+mount -o remount,exec /dev/shm
 
 # build app
-/home/ubuntu/buck/bin/buck build ReactAndroid/src/main/java/com/facebook/react
-/home/ubuntu/buck/bin/buck build ReactAndroid/src/main/java/com/facebook/react/shell
+buck build ReactAndroid/src/main/java/com/facebook/react
+buck build ReactAndroid/src/main/java/com/facebook/react/shell
 
 # compile native libs with Gradle script, we need bridge for unit and
 # integration tests
 ./gradlew :ReactAndroid:packageReactNdkLibsForBuck -Pjobs=1 -Pcom.android.build.threadPoolSize=1
 
 # unit tests
-/home/ubuntu/buck/bin/buck test ReactAndroid/src/test/... --config build.threads=1
+buck test ReactAndroid/src/test/... --config build.threads=1
 
 # integration tests
 # build JS bundle for instrumentation tests

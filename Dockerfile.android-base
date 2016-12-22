@@ -4,17 +4,13 @@ FROM library/ubuntu:16.04
 ENV GRADLE_OPTS="-Dorg.gradle.jvmargs=\"-Xmx512m -XX:+HeapDumpOnOutOfMemoryError\""
 
 # install system dependencies
-RUN apt-get update && apt-get install ant autoconf automake expect g++ gcc git libqt5widgets5 make maven npm openjdk-8* python-dev python3-dev qml-module-qtquick-controls qtdeclarative5-dev -y
-#RUN apk update && apk add apache-ant autoconf automake expect g++ gcc git libqt5widgets5 make npm python-dev python3-dev qml-module-qtquick-controls qtdeclarative5-dev -y
-
-# install npm
-#RUN npm install n -g
-#RUN n 6.2.0
+RUN apt-get update && apt-get install ant autoconf automake curl expect g++ gcc git libqt5widgets5 lib32z1 lib32stdc++6 make maven npm openjdk-8* python-dev python3-dev qml-module-qtquick-controls qtdeclarative5-dev unzip -y
 
 # clone and configure buck
 RUN git clone https://github.com/facebook/buck.git /home/ubuntu/buck
 WORKDIR /home/ubuntu/buck
 RUN ./bin/buck --version
+ENV PATH=${PATH}:/home/ubuntu/buck/bin/
 
 # clone and configure watchman
 RUN git clone https://github.com/facebook/watchman.git /home/ubuntu/watchman
@@ -25,35 +21,33 @@ RUN ./configure
 RUN make
 RUN make install
 
-RUN apt-get install curl unzip
-
+# android
 RUN mkdir /home/ubuntu/android
 WORKDIR /home/ubuntu/android
 RUN curl --silent https://dl.google.com/android/repository/tools_r25.2.3-linux.zip > android.zip
 RUN unzip android.zip
 RUN rm android.zip
-
-# set environment variables
 ENV ANDROID_HOME=/home/ubuntu/android
 ENV PATH=${PATH}:${ANDROID_HOME}/tools:${ANDROID_HOME}/platform-tools
 
-# RUN echo y | android update sdk -u -a -t android-19 &&
-# RUN echo y | android update sdk -u -a -t platform-tools &&
-# RUN echo y | android update sdk -u -a -t build-tools-21.1.2 &&
-# RUN echo y | android update sdk -u -a -t extra-android-m2repository &&
-# RUN echo y | android update sdk -u -a -t extra-android-support &&
-# RUN echo y | android update sdk -u -a -t extra-google-m2repository &&
+# add sdk tools
+# 2- Android SDK Platform-tools, revision 25.0.3
+# 10- Android SDK Build-tools, revision 23.0.3
+# 35- SDK Platform Android 6.0, API 23, revision 3
+# 39- SDK Platform Android 4.4.2, API 19, revision 4
+# 102- ARM EABI v7a System Image, Android API 19, revision 5
+# 103- Intel x86 Atom System Image, Android API 19, revision 5
+# 166- Android Support Repository, revision 41
+RUN echo "y" | android update sdk -u -a -t 2,10,35,39,102,103,166
+RUN ln -s /home/ubuntu/android/platform-tools/adb /usr/bin/adb
 
-RUN echo "y" | android update sdk -u -a -t 12,35,39,166
-RUN echo "y" | android update sdk -u -a  --filter sys-img-armeabi-v7a-android-19,sys-img-x86_64-android-19
-
+# install NDK
 RUN mkdir /home/ubuntu/ndk
 WORKDIR /home/ubuntu/ndk
-RUN curl --silent https://dl.google.com/android/repository/android-ndk-r13b-linux-x86_64.zip > ndk.zip
+RUN curl --silent https://dl.google.com/android/repository/android-ndk-r10e-linux-x86_64.zip > ndk.zip
 RUN unzip ndk.zip
 RUN rm ndk.zip
-
-ENV ANDROID_NDK=/home/ubuntu/ndk/android-ndk-r13b
+ENV ANDROID_NDK=/home/ubuntu/ndk/android-ndk-r10e
 ENV PATH=${PATH}:${ANDROID_NDK}
 
 # add react-native code
@@ -61,11 +55,11 @@ ADD . /app
 WORKDIR /app
 
 # run buck fetches
-RUN /home/ubuntu/buck/bin/buck fetch ReactAndroid/src/test/java/com/facebook/react/modules
-RUN /home/ubuntu/buck/bin/buck fetch ReactAndroid/src/main/java/com/facebook/react
-RUN /home/ubuntu/buck/bin/buck fetch ReactAndroid/src/main/java/com/facebook/react/shell
-RUN /home/ubuntu/buck/bin/buck fetch ReactAndroid/src/test/...
-RUN /home/ubuntu/buck/bin/buck fetch ReactAndroid/src/androidTest/...
+RUN buck fetch ReactAndroid/src/test/java/com/facebook/react/modules
+RUN buck fetch ReactAndroid/src/main/java/com/facebook/react
+RUN buck fetch ReactAndroid/src/main/java/com/facebook/react/shell
+RUN buck fetch ReactAndroid/src/test/...
+RUN buck fetch ReactAndroid/src/androidTest/...
 
 RUN expect -c "spawn bash -c \"source scripts/circle-ci-android-setup.sh && getAndroidSDK\"; expect \"*create a custom hardware profile*\"; send -- \"no\r\"; expect eof"
 
