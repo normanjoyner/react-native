@@ -1,81 +1,79 @@
-FROM library/ubuntu:16.04
+FROM library/ubuntu:16.10
 
-# environment variables
-ENV GRADLE_OPTS="-Dorg.gradle.jvmargs=\"-Xmx512m -XX:+HeapDumpOnOutOfMemoryError\""
+# set default environemnt variables
+ENV ADB_CONNECT_TIMEOUT_MS=60000
+ENV ANDROID_VERSION=25.2.3
+ENV BUCK_VERSION=2016.11.11.01
+ENV NDK_VERSION=10e
+ENV NODE_VERSION=6.2.0
+ENV WATCHMAN_VERSION=4.7.0
 
 # install system dependencies
 RUN apt-get update && apt-get install ant autoconf automake curl g++ gcc git libqt5widgets5 lib32z1 lib32stdc++6 make maven npm openjdk-8* python-dev python3-dev qml-module-qtquick-controls qtdeclarative5-dev unzip -y
 
-# install node 6.2.0
+# install node
 RUN npm install n -g
-RUN n 6.2.0
+RUN n $NODE_VERSION
 
-# clone and configure buck
-RUN git clone https://github.com/facebook/buck.git /home/ubuntu/buck
-WORKDIR /home/ubuntu/buck
-RUN ./bin/buck --version
-ENV PATH=${PATH}:/home/ubuntu/buck/bin/
+# download buck
+RUN git clone https://github.com/facebook/buck.git /opt/buck
+WORKDIR /opt/buck
+RUN git checkout v$BUCK_VERSION
 
-# clone and configure watchman
-RUN git clone https://github.com/facebook/watchman.git /home/ubuntu/watchman
-WORKDIR /home/ubuntu/watchman
-RUN git checkout v4.7.0
+# increase adb timeout
+RUN sed -i "s/ADB_CONNECT_TIMEOUT_MS\ =\ 5000/ADB_CONNECT_TIMEOUT_MS\ =\ $ADB_CONNECT_TIMEOUT_MS/" src/com/facebook/buck/android/AdbHelper.java
+RUN sed -i "s/ADB_CONNECT_TIMEOUT_MS\ =\ 5000/ADB_CONNECT_TIMEOUT_MS\ =\ $ADB_CONNECT_TIMEOUT_MS/" src/com/facebook/buck/testrunner/InstrumentationTestRunner.java
+
+# build buck
+RUN ant
+
+# add buck to PATH
+ENV PATH=${PATH}:/opt/buck/bin/
+
+# download watchman
+RUN git clone https://github.com/facebook/watchman.git /opt/watchman
+WORKDIR /opt/watchman
+RUN git checkout v$WATCHMAN_VERSION
+
+# build watchman
 RUN ./autogen.sh
 RUN ./configure
 RUN make
 RUN make install
 
-# android
-RUN mkdir /home/ubuntu/android
-WORKDIR /home/ubuntu/android
-RUN curl --silent https://dl.google.com/android/repository/tools_r25.2.3-linux.zip > android.zip
+# download and unpack android
+RUN mkdir /opt/android
+WORKDIR /opt/android
+RUN curl --silent https://dl.google.com/android/repository/tools_r$ANDROID_VERSION-linux.zip > android.zip
 RUN unzip android.zip
 RUN rm android.zip
-ENV ANDROID_HOME=/home/ubuntu/android
+
+# set ANDROID_HOME, ANDROID_SDK_HOME and add to PATH
+ENV ANDROID_HOME=/opt/android
 ENV ANDROID_SDK_HOME=${ANDROID_HOME}
 ENV PATH=${PATH}:${ANDROID_HOME}/tools:${ANDROID_HOME}/platform-tools
 
-# add sdk tools
-# 2- Android SDK Platform-tools, revision 25.0.3
-# 12- Android SDK Build-tools, revision 23.0.1
-# 35- SDK Platform Android 6.0, API 23, revision 3
-# 39- SDK Platform Android 4.4.2, API 19, revision 4
-# 102- ARM EABI v7a System Image, Android API 19, revision 5
-# 103- Intel x86 Atom System Image, Android API 19, revision 5
-# 131- Google APIs, Android API 23, revision 1
-# 166- Android Support Repository, revision 41
-RUN echo "y" | android update sdk -u -a -t 2,12,35,39,102,103,131,166
-RUN ln -s /home/ubuntu/android/platform-tools/adb /usr/bin/adb
-
-# install NDK
-RUN mkdir /home/ubuntu/ndk
-WORKDIR /home/ubuntu/ndk
-RUN curl --silent https://dl.google.com/android/repository/android-ndk-r10e-linux-x86_64.zip > ndk.zip
+# download and unpack NDK
+RUN mkdir /opt/ndk
+WORKDIR /opt/ndk
+RUN curl --silent https://dl.google.com/android/repository/android-ndk-r$NDK_VERSION-linux-x86_64.zip > ndk.zip
 RUN unzip ndk.zip
+
+# cleanup NDK
 RUN rm ndk.zip
-ENV ANDROID_NDK=/home/ubuntu/ndk/android-ndk-r10e
+
+# set ANDROID_NDK and add to PATH
+ENV ANDROID_NDK=/opt/ndk/android-ndk-r$NDK_VERSION
 ENV PATH=${PATH}:${ANDROID_NDK}
 
-# add react-native code
-ADD . /app
-WORKDIR /app
-
-# run buck fetches
-RUN buck fetch ReactAndroid/src/test/java/com/facebook/react/modules
-RUN buck fetch ReactAndroid/src/main/java/com/facebook/react
-RUN buck fetch ReactAndroid/src/main/java/com/facebook/react/shell
-RUN buck fetch ReactAndroid/src/test/...
-RUN buck fetch ReactAndroid/src/androidTest/...
-
-RUN echo "y" | android update sdk -u -a -t 12
-#RUN expect -c "spawn bash -c \"source scripts/circle-ci-android-setup.sh && getAndroidSDK\"; expect \"*create a custom hardware profile*\"; send -- \"no\r\"; expect eof"
-RUN bash -c "source scripts/circle-ci-android-setup.sh && getAndroidSDK"
-
-RUN ./gradlew :ReactAndroid:downloadBoost :ReactAndroid:downloadDoubleConversion :ReactAndroid:downloadFolly :ReactAndroid:downloadGlog
-
-# build node dependencies
-RUN npm config set spin=false
-RUN npm config set progress=false
-RUN npm install
-RUN npm install github@0.2.4
-RUN cd website && npm install
+# add android SDK tools
+# 2 - Android SDK Platform-tools, revision 25.0.3
+# 12 - Android SDK Build-tools, revision 23.0.1
+# 35 - SDK Platform Android 6.0, API 23, revision 3
+# 39 - SDK Platform Android 4.4.2, API 19, revision 4
+# 102 - ARM EABI v7a System Image, Android API 19, revision 5
+# 103 - Intel x86 Atom System Image, Android API 19, revision 5
+# 131 - Google APIs, Android API 23, revision 1
+# 166 - Android Support Repository, revision 41
+RUN echo "y" | android update sdk -u -a -t 2,12,35,39,102,103,131,166
+RUN ln -s /opt/android/platform-tools/adb /usr/bin/adb

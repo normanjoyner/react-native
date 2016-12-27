@@ -20,8 +20,8 @@ def buildDockerfile(dockerfilePath = "Dockerfile", imageName) {
     }
 }
 
-def runCmdOnDockerImage(imageName, cmd) {
-    def result = sh(script: "docker run --net=host -i ${imageName} sh -c '${cmd}'", returnStatus: true)
+def runCmdOnDockerImage(imageName, cmd, run_opts = '') {
+    def result = sh(script: "docker run ${run_opts} -i ${imageName} sh -c '${cmd}'", returnStatus: true)
 
     if(result != 0) {
         throw new Exception("Failed to run cmd[${cmd}] on image[${imageName}]")
@@ -65,14 +65,14 @@ def runStages() {
                 buildInfo.scm.isPR = githubInfo.isPR
                 buildInfo.image.tag = buildInfo.scm.sha
 
-                jsTag = "${buildInfo.image.tag}-js"
+                jsTag = "${buildInfo.image.tag}-javascript"
                 androidTag = "${buildInfo.image.tag}-android"
                 jsImageName = "${buildInfo.image.name}:${jsTag}"
                 androidImageName = "${buildInfo.image.name}:${androidTag}"
 
                 parallel(
                     javascript: {
-                        buildDockerfile('Dockerfile.js', jsImageName)
+                        buildDockerfile('Dockerfile.javascript', jsImageName)
                     },
                     android: {
                         buildDockerfile('Dockerfile.android', androidImageName)
@@ -83,14 +83,14 @@ def runStages() {
 
             stage('Tests') {
                 parallel(
-                    jsflow: {
+                    'javascript flow': {
                         runCmdOnDockerImage(jsImageName, 'yarn run flow check')
                     },
-                    jstest: {
+                    'javascript tests': {
                         runCmdOnDockerImage(jsImageName, 'yarn test --maxWorkers=4')
                     },
-                    androidtests: {
-                        runCmdOnDockerImage(androidImageName, 'bash /app/test.sh')
+                    'android tests': {
+                        runCmdOnDockerImage(androidImageName, 'bash /app/scripts/run-android-docker-instrumentation-tests.sh', '--privileged')
                     }
                 )
             }

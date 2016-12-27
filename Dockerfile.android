@@ -1,27 +1,41 @@
 FROM containership/android-base:latest
 
-# temporary hack for adb timeout
-WORKDIR /home/ubuntu/buck
-RUN sed -i 's/ADB_CONNECT_TIMEOUT_MS\ =\ 5000/ADB_CONNECT_TIMEOUT_MS\ =\ 60000/' src/com/facebook/buck/android/AdbHelper.java
-RUN sed -i 's/ADB_CONNECT_TIMEOUT_MS\ =\ 5000/ADB_CONNECT_TIMEOUT_MS\ =\ 60000/' src/com/facebook/buck/testrunner/InstrumentationTestRunner.java
-RUN ant
+# set default environment variables
+ENV REACT_NATIVE_MAX_WORKERS=1
+ENV JAVA_TOOL_OPTIONS="-Dfile.encoding=UTF8"
+
+# add react-native code
+ADD . /app
 WORKDIR /app
 
-# run buck fetches since we modified codebase
+# run buck fetches
 RUN buck fetch ReactAndroid/src/test/java/com/facebook/react/modules
 RUN buck fetch ReactAndroid/src/main/java/com/facebook/react
 RUN buck fetch ReactAndroid/src/main/java/com/facebook/react/shell
 RUN buck fetch ReactAndroid/src/test/...
 RUN buck fetch ReactAndroid/src/androidTest/...
 
-# move back to base image
-RUN npm install n -g
-RUN n 6.2.0
-RUN echo "y" | android update sdk -u -a -t 131
+# create virtual device
+RUN echo no | android create avd -n testAVD -f -t android-19 --abi default/armeabi-v7a
 
-ENV ANDROID_SDK_ROOT=/home/ubuntu/android
+RUN ./gradlew :ReactAndroid:downloadBoost :ReactAndroid:downloadDoubleConversion :ReactAndroid:downloadFolly :ReactAndroid:downloadGlog
 
-ADD test.sh /app/test.sh
-#ADD scripts/run-android-ci-instrumentation-tests.js /app/scripts/run-android-ci-instrumentation-tests.js
+# build node dependencies
+RUN npm config set spin=false
+RUN npm config set progress=false
+RUN npm install
+RUN npm install github@0.2.4
+WORKDIR /app/website
+RUN npm install
 
-CMD bash test.sh
+WORKDIR /app
+
+# build app
+RUN buck build ReactAndroid/src/main/java/com/facebook/react
+RUN buck build ReactAndroid/src/main/java/com/facebook/react/shell
+
+# compile native libs with Gradle script, we need bridge for unit and integration tests
+RUN ./gradlew :ReactAndroid:packageReactNdkLibsForBuck -Pjobs=1 -Pcom.android.build.threadPoolSize=1
+
+# default command
+CMD bash scripts/run-android-docker-instrumentation-tests.sh
