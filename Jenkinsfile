@@ -89,8 +89,11 @@ def runStages() {
                     'javascript tests': {
                         runCmdOnDockerImage(jsImageName, 'yarn test --maxWorkers=4')
                     },
-                    'android tests': {
+                    'android integration tests': {
                         runCmdOnDockerImage(androidImageName, 'bash /app/scripts/run-android-docker-instrumentation-tests.sh', '--privileged')
+                    },
+                    'android unit tests': {
+                        runCmdOnDockerImage(androidImageName, 'bash /app/scripts/run-android-docker-unit-tests.sh', '--privileged')
                     }
                 )
             }
