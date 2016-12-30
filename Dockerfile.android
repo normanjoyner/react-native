@@ -20,11 +20,16 @@ RUN echo no | android create avd -n testAVD -f -t android-19 --abi default/armea
 
 RUN ./gradlew :ReactAndroid:downloadBoost :ReactAndroid:downloadDoubleConversion :ReactAndroid:downloadFolly :ReactAndroid:downloadGlog
 
-# build node dependencies
 RUN npm config set spin=false
 RUN npm config set progress=false
+
+# https://github.com/npm/npm/issues/13306
+RUN cd $(npm root -g)/npm && npm install fs-extra && sed -i -e s/graceful-fs/fs-extra/ -e s/fs.rename/fs.move/ ./lib/utils/rename.js
+
+# build node dependencies
 RUN npm install
 RUN npm install github@0.2.4
+
 WORKDIR /app/website
 RUN npm install
 

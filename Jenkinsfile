@@ -52,9 +52,9 @@ def runStages() {
     ]
 
     node {
-        try {
-            def jsTag, androidTag, jsImageName, androidImageName
+        def jsTag, androidTag, jsImageName, androidImageName
 
+        try {
             stage('Build') {
                 checkout scm
 
