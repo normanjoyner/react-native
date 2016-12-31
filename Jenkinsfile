@@ -40,7 +40,7 @@ def calculateGithubInfo() {
 def runStages() {
     def buildInfo = [
         image: [
-            name: "normanjoyner/react-native",
+            name: "facebook/react-native",
             tag: null
         ],
         scm: [
