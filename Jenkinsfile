@@ -71,10 +71,10 @@ def runStages() {
                 androidImageName = "${buildInfo.image.name}:${androidTag}"
 
                 parallel(
-                    javascript: {
+                    'javascript build': {
                         buildDockerfile('Dockerfile.javascript', jsImageName)
                     },
-                    android: {
+                    'android build': {
                         buildDockerfile('Dockerfile.android', androidImageName)
                     }
                 )
