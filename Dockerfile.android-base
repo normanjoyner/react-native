@@ -1,6 +1,6 @@
 FROM library/ubuntu:16.10
 
-# set default environemnt variables
+# set default environment variables
 ENV ADB_CONNECT_TIMEOUT_MS=60000
 ENV ANDROID_VERSION=25.2.3
 ENV BUCK_VERSION=2016.11.11.01
@@ -10,6 +10,10 @@ ENV WATCHMAN_VERSION=4.7.0
 
 # install system dependencies
 RUN apt-get update && apt-get install ant autoconf automake curl g++ gcc git libqt5widgets5 lib32z1 lib32stdc++6 make maven npm openjdk-8* python-dev python3-dev qml-module-qtquick-controls qtdeclarative5-dev unzip -y
+
+# configure npm
+RUN npm config set spin=false
+RUN npm config set progress=false
 
 # install node
 RUN npm install n -g
@@ -77,3 +81,6 @@ ENV PATH=${PATH}:${ANDROID_NDK}
 # 166 - Android Support Repository, revision 41
 RUN echo "y" | android update sdk -u -a -t 2,12,35,39,102,103,131,166
 RUN ln -s /opt/android/platform-tools/adb /usr/bin/adb
+
+# create virtual device
+RUN echo no | android create avd -n testAVD -f -t android-19 --abi default/armeabi-v7a
