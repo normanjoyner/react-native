@@ -29,10 +29,10 @@ const fs = require('fs');
 const path = require('path');
 
 const testClasses = fs.readdirSync(path.resolve(process.cwd(), argv.path))
-    .filter(function filter(clazz) {
+    .filter((clazz) => {
         return clazz.endsWith('.java');
     })
-    .map(function map(clazz) {
+    .map((clazz) => {
         return argv.package + '.' + clazz;
     });
 
@@ -41,6 +41,7 @@ return async.eachSeries(testClasses, (clazz, callback) => {
     return child_process.exec(`./scripts/run-instrumentation-tests-via-adb-shell.sh ${argv.package} ${clazz}`, callback);
 }, (err) => {
     if (err) {
+        console.error(err);
         return process.exit(1);
     }
 
