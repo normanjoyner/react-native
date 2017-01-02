@@ -21,55 +21,30 @@
  * --retries [num] - how many times to retry possible flaky commands: npm install and running tests, default 1
  */
 /*eslint-disable no-undef */
-//https://github.com/shelljs/shelljs/issues/51
-//require('shelljs/global');
 
 const argv = require('yargs').argv;
+const async = require('async');
 const child_process = require('child_process');
+const fs = require('fs');
+const path = require('path');
 
-// ReactAndroid/src/androidTest/java/com/facebook/react/tests/ReactHorizontalScrollViewTestCase.java
-/*
-const testClasses = ls(`${argv.path}/*.java`)
-.map(javaFile => {
-  // ReactHorizontalScrollViewTestCase
-  return path.basename(javaFile, '.java');
-}).map(className => {
-  // com.facebook.react.tests.ReactHorizontalScrollViewTestCase
-  return argv.package + '.' + className;
-});
-*/
-
-const testClasses = [ 'com.facebook.react.tests.CatalystMeasureLayoutTest',
-  'com.facebook.react.tests.CatalystMultitouchHandlingTestCase',
-  'com.facebook.react.tests.CatalystNativeJSToJavaParametersTestCase',
-  'com.facebook.react.tests.CatalystNativeJavaToJSArgumentsTestCase',
-  'com.facebook.react.tests.CatalystSubviewsClippingTestCase',
-  'com.facebook.react.tests.CatalystTouchBubblingTestCase',
-  'com.facebook.react.tests.CatalystUIManagerTestCase',
-  'com.facebook.react.tests.DatePickerDialogTestCase',
-  'com.facebook.react.tests.InitialPropsTestCase',
-  'com.facebook.react.tests.JSLocaleTest',
-  'com.facebook.react.tests.JSResponderTestCase',
-  'com.facebook.react.tests.LayoutEventsTestCase',
-  'com.facebook.react.tests.ProgressBarTestCase',
-  'com.facebook.react.tests.ReactHorizontalScrollViewTestCase',
-  'com.facebook.react.tests.ReactPickerTestCase',
-  'com.facebook.react.tests.ReactRootViewTestCase',
-  'com.facebook.react.tests.ReactScrollViewTestCase',
-  'com.facebook.react.tests.ReactSwipeRefreshLayoutTestCase',
-  'com.facebook.react.tests.ShareTestCase',
-  'com.facebook.react.tests.TestIdTestCase',
-  'com.facebook.react.tests.TextInputTestCase',
-  'com.facebook.react.tests.TimePickerDialogTestCase',
-  'com.facebook.react.tests.ViewRenderingTestCase' ];
-
-let exitCode = 0;
-testClasses.forEach((testClass) => {
-    child_process.exec(`./scripts/run-instrumentation-tests-via-adb-shell.sh ${argv.package} ${testClass}`, (err, stderr, stdout) => {
-        console.log(err);
-        console.log(stderr);
-        console.log(stdout);
+const testClasses = fs.readdirSync(path.resolve(process.cwd(), argv.path))
+    .filter(function filter(clazz) {
+        return clazz.endsWith('.java');
+    })
+    .map(function map(clazz) {
+        return argv.package + '.' + clazz;
     });
+
+// TODO: NICK TATE - add in support for retry flag
+return async.eachSeries(testClasses, function executeTest(clazz, callback) {
+    return child_process.exec(`./scripts/run-instrumentation-tests-via-adb-shell.sh ${argv.package} ${clazz}`, (err) => {
+}, function finishedTests(err) {
+    if (err) {
+        return process.exit(1);
+    }
+
+    return process.exit(0);
 });
 
 /*eslint-enable no-undef */

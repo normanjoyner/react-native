@@ -14,9 +14,6 @@ done
 
 set -x
 
-# unit tests
-buck test ReactAndroid/src/test/... --config build.threads=1
-
 # integration tests
 # build JS bundle for instrumentation tests
 node local-cli/cli.js bundle --platform android --dev true --entry-file ReactAndroid/src/androidTest/js/TestBundle.js --bundle-output ReactAndroid/src/androidTest/assets/AndroidTestBundle.js
