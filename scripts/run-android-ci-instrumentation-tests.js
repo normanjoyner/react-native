@@ -37,9 +37,9 @@ const testClasses = fs.readdirSync(path.resolve(process.cwd(), argv.path))
     });
 
 // TODO: NICK TATE - add in support for retry flag
-return async.eachSeries(testClasses, function executeTest(clazz, callback) {
-    return child_process.exec(`./scripts/run-instrumentation-tests-via-adb-shell.sh ${argv.package} ${clazz}`, (err) => {
-}, function finishedTests(err) {
+return async.eachSeries(testClasses, (clazz, callback) => {
+    return child_process.exec(`./scripts/run-instrumentation-tests-via-adb-shell.sh ${argv.package} ${clazz}`, callback);
+}, (err) => {
     if (err) {
         return process.exit(1);
     }
