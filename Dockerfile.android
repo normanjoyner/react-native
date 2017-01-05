@@ -1,10 +1,44 @@
-FROM containership/android-deps:latest
+FROM containership/android-base:latest
 
 # set default environment variables
-ENV REACT_NATIVE_MAX_WORKERS=1
+ENV GRADLE_OPTS="-Dorg.gradle.jvmargs=\"-Xmx512m -XX:+HeapDumpOnOutOfMemoryError\""
 ENV JAVA_TOOL_OPTIONS="-Dfile.encoding=UTF8"
+ENV REACT_NATIVE_MAX_WORKERS=1
 
-# add react-native code
+# add ReactAndroid directory
+ADD .buckconfig /app/.buckconfig
+ADD .buckjavaargs /app/.buckjavaargs
+ADD ReactAndroid /app/ReactAndroid
+ADD ReactCommon /app/ReactCommon
+ADD keystores /app/keystores
+
+# set workdir
+WORKDIR /app
+
+# run buck fetches
+RUN buck fetch ReactAndroid/src/test/java/com/facebook/react/modules
+RUN buck fetch ReactAndroid/src/main/java/com/facebook/react
+RUN buck fetch ReactAndroid/src/main/java/com/facebook/react/shell
+RUN buck fetch ReactAndroid/src/test/...
+RUN buck fetch ReactAndroid/src/androidTest/...
+
+# build app
+RUN buck build ReactAndroid/src/main/java/com/facebook/react
+RUN buck build ReactAndroid/src/main/java/com/facebook/react/shell
+
+ADD gradle /app/gradle
+ADD gradlew /app/gradlew
+ADD settings.gradle /app/settings.gradle
+ADD build.gradle /app/build.gradle
+ADD react.gradle /app/react.gradle
+
+# run gradle downloads
+RUN ./gradlew :ReactAndroid:downloadBoost :ReactAndroid:downloadDoubleConversion :ReactAndroid:downloadFolly :ReactAndroid:downloadGlog
+
+# compile native libs with Gradle script, we need bridge for unit and integration tests
+RUN ./gradlew :ReactAndroid:packageReactNdkLibsForBuck -Pjobs=1 -Pcom.android.build.threadPoolSize=1
+
+# add all react-native code
 ADD . /app
 WORKDIR /app
 
@@ -20,5 +54,5 @@ RUN npm install
 
 WORKDIR /app
 
-# default command
-CMD bash scripts/run-android-docker-instrumentation-tests.sh
+# run unit and instrumentation tests by default
+CMD ./scripts/run-android-docker-unit-tests.sh && ./scripts/run-android-docker-instrumentation-tests.sh

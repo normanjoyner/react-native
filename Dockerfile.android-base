@@ -1,12 +1,14 @@
 FROM library/ubuntu:16.10
 
+# set default build arguments
+ARG ANDROID_VERSION=25.2.3
+ARG BUCK_VERSION=2016.11.11.01
+ARG NDK_VERSION=10e
+ARG NODE_VERSION=6.2.0
+ARG WATCHMAN_VERSION=4.7.0
+
 # set default environment variables
-ENV ADB_CONNECT_TIMEOUT_MS=60000
-ENV ANDROID_VERSION=25.2.3
-ENV BUCK_VERSION=2016.11.11.01
-ENV NDK_VERSION=10e
-ENV NODE_VERSION=6.2.0
-ENV WATCHMAN_VERSION=4.7.0
+ENV ADB_INSTALL_TIMEOUT=10
 
 # install system dependencies
 RUN apt-get update && apt-get install ant autoconf automake curl g++ gcc git libqt5widgets5 lib32z1 lib32stdc++6 make maven npm openjdk-8* python-dev python3-dev qml-module-qtquick-controls qtdeclarative5-dev unzip -y
@@ -23,10 +25,6 @@ RUN n $NODE_VERSION
 RUN git clone https://github.com/facebook/buck.git /opt/buck
 WORKDIR /opt/buck
 RUN git checkout v$BUCK_VERSION
-
-# increase adb timeout
-RUN sed -i "s/ADB_CONNECT_TIMEOUT_MS\ =\ 5000/ADB_CONNECT_TIMEOUT_MS\ =\ $ADB_CONNECT_TIMEOUT_MS/" src/com/facebook/buck/android/AdbHelper.java
-RUN sed -i "s/ADB_CONNECT_TIMEOUT_MS\ =\ 5000/ADB_CONNECT_TIMEOUT_MS\ =\ $ADB_CONNECT_TIMEOUT_MS/" src/com/facebook/buck/testrunner/InstrumentationTestRunner.java
 
 # build buck
 RUN ant

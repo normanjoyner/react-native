@@ -29,16 +29,25 @@ const fs = require('fs');
 const path = require('path');
 
 const testClasses = fs.readdirSync(path.resolve(process.cwd(), argv.path))
-    .filter((clazz) => {
-        return clazz.endsWith('.java');
-    })
-    .map((clazz) => {
+    .filter((file) => {
+        return file.endsWith('.java');
+    }).map((clazz) => {
+        return path.basename(clazz, '.java');
+    }).map((clazz) => {
         return argv.package + '.' + clazz;
     });
 
 // TODO: NICK TATE - add in support for retry flag
 return async.eachSeries(testClasses, (clazz, callback) => {
-    return child_process.exec(`./scripts/run-instrumentation-tests-via-adb-shell.sh ${argv.package} ${clazz}`, callback);
+        child_process.spawn('./scripts/run-instrumentation-tests-via-adb-shell.sh', [argv.package, clazz], {
+            stdio: 'inherit'
+        }).on('error', callback).on('exit', (code) => {
+            if(code !== 0) {
+                return callback(new Error(`Process exited with code: ${code}`));
+            }
+
+            return callback();
+        });
 }, (err) => {
     if (err) {
         console.error(err);
