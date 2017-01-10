@@ -22,4 +22,4 @@ node local-cli/cli.js bundle --platform android --dev true --entry-file ReactAnd
 buck install ReactAndroid/src/androidTest/buck-runner:instrumentation-tests --config build.threads=1
 
 # run installed apk with tests
-node ./scripts/run-android-ci-instrumentation-tests.js --retries 3 --path ./ReactAndroid/src/androidTest/java/com/facebook/react/tests --package com.facebook.react.tests
+node ./scripts/docker/run-android-ci-instrumentation-tests.js --retries 3 --path ./ReactAndroid/src/androidTest/java/com/facebook/react/tests --package com.facebook.react.tests

@@ -21,40 +21,38 @@
  * --retries [num] - how many times to retry possible flaky commands: npm install and running tests, default 1
  */
 /*eslint-disable no-undef */
+require('shelljs/global');
 
 const argv = require('yargs').argv;
-const async = require('async');
-const child_process = require('child_process');
-const fs = require('fs');
+const numberOfRetries = argv.retries || 1;
+const tryExecNTimes = require('./try-n-times');
 const path = require('path');
 
-const testClasses = fs.readdirSync(path.resolve(process.cwd(), argv.path))
-    .filter((file) => {
-        return file.endsWith('.java');
-    }).map((clazz) => {
-        return path.basename(clazz, '.java');
-    }).map((clazz) => {
-        return argv.package + '.' + clazz;
-    });
-
-// TODO: NICK TATE - add in support for retry flag
-return async.eachSeries(testClasses, (clazz, callback) => {
-        child_process.spawn('./scripts/run-instrumentation-tests-via-adb-shell.sh', [argv.package, clazz], {
-            stdio: 'inherit'
-        }).on('error', callback).on('exit', (code) => {
-            if(code !== 0) {
-                return callback(new Error(`Process exited with code: ${code}`));
-            }
-
-            return callback();
-        });
-}, (err) => {
-    if (err) {
-        console.error(err);
-        return process.exit(1);
-    }
-
-    return process.exit(0);
+// ReactAndroid/src/androidTest/java/com/facebook/react/tests/ReactHorizontalScrollViewTestCase.java
+const testClasses = ls(`${argv.path}/*.java`)
+.map(javaFile => {
+  // ReactHorizontalScrollViewTestCase
+  return path.basename(javaFile, '.java');
+}).map(className => {
+  // com.facebook.react.tests.ReactHorizontalScrollViewTestCase
+  return argv.package + '.' + className;
 });
+
+let exitCode = 0;
+testClasses.forEach((testClass) => {
+  if (tryExecNTimes(
+    () => {
+      echo(`Starting ${testClass}`);
+      // any faster means Circle CI crashes
+      exec('sleep 10s');
+      return exec(`./scripts/run-instrumentation-tests-via-adb-shell.sh ${argv.package} ${testClass}`).code;
+    },
+    numberOfRetries)) {
+      echo(`${testClass} failed ${numberOfRetries} times`);
+      exitCode = 1;
+  }
+});
+
+exit(exitCode);
 
 /*eslint-enable no-undef */
