@@ -28,26 +28,54 @@ const child_process = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const testClasses = fs.readdirSync(path.resolve(process.cwd(), argv.path))
+const test_opts = {
+    FILTER: new RegExp(argv.filter || '.*', 'i'),
+    PACKAGE: argv.package || 'com.facebook.react.tests',
+    PATH: argv.path || './ReactAndroid/src/androidTest/java/com/facebook/react/tests',
+    RETRIES: parseInt(argv.retries || 2, 10),
+
+    OFFSET: argv.offset,
+    COUNT: argv.count
+}
+
+let testClasses = fs.readdirSync(path.resolve(process.cwd(), test_opts.PATH))
     .filter((file) => {
         return file.endsWith('.java');
     }).map((clazz) => {
         return path.basename(clazz, '.java');
     }).map((clazz) => {
-        return argv.package + '.' + clazz;
+        return test_opts.PACKAGE + '.' + clazz;
+    }).filter((clazz) => {
+        return test_opts.FILTER.test(clazz);
     });
 
-// TODO: NICK TATE - add in support for retry flag
+// only process subset of the tests at corresponding offset and count if args provided
+if (test_opts.COUNT != null && test_opts.OFFSET != null) {
+    const testCount = testClasses.length;
+    const start = test_opts.COUNT * test_opts.OFFSET;
+    const end = start + test_opts.COUNT;
+
+    if (start >= testClasses.length) {
+        testClasses = [];
+    } else if (end >= testClasses.length) {
+        testClasses = testClasses.slice(start);
+    } else {
+        testClasses = testClasses.slice(start, end);
+    }
+}
+
 return async.eachSeries(testClasses, (clazz, callback) => {
-        child_process.spawn('./scripts/run-instrumentation-tests-via-adb-shell.sh', [argv.package, clazz], {
+    return async.retry(test_opts.RETRIES, (retryCb) => {
+        return child_process.spawn('./scripts/run-instrumentation-tests-via-adb-shell.sh', [test_opts.PACKAGE, clazz], {
             stdio: 'inherit'
-        }).on('error', callback).on('exit', (code) => {
+        }).on('error', retryCb).on('exit', (code) => {
             if(code !== 0) {
-                return callback(new Error(`Process exited with code: ${code}`));
+                return retryCb(new Error(`Process exited with code: ${code}`));
             }
 
-            return callback();
+            return retryCb();
         });
+    }, callback);
 }, (err) => {
     if (err) {
         console.error(err);

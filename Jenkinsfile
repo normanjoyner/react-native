@@ -37,6 +37,23 @@ def calculateGithubInfo() {
     ]
 }
 
+def getParallelInstrumentationTests(testDir, parallelCount, imageName) {
+    def integrationTests = [:]
+    def testCount = sh(script: "ls ${testDir} | wc -l", returnStdout: true).trim().toInteger()
+    def testPerParallel = testCount.intdiv(parallelCount) + 1
+
+    for (def x = 0; (x*testPerParallel) < testCount; x++) {
+        def offset = x
+        integrationTests["android integration tests: ${offset}"] = {
+            run: {
+                runCmdOnDockerImage(imageName, "bash /app/scripts/run-android-docker-instrumentation-tests.sh --offset=${offset} --count=${testPerParallel}", '--privileged')
+            }
+        }
+    }
+
+    return integrationTests
+}
+
 def runStages() {
     def buildInfo = [
         image: [
@@ -52,7 +69,7 @@ def runStages() {
     ]
 
     node {
-        def jsTag, androidTag, jsImageName, androidImageName
+        def jsTag, androidTag, jsImageName, androidImageName, parallelInstrumentationTests
 
         try {
             stage('Build') {
@@ -70,6 +87,8 @@ def runStages() {
                 jsImageName = "${buildInfo.image.name}:${jsTag}"
                 androidImageName = "${buildInfo.image.name}:${androidTag}"
 
+                parallelInstrumentationTests = getParallelInstrumentationTests('./ReactAndroid/src/androidTest/java/com/facebook/react/tests', 1, androidImageName)
+
                 parallel(
                     'javascript build': {
                         buildDockerfile('Dockerfile.javascript', jsImageName)
@@ -82,28 +101,36 @@ def runStages() {
             }
 
             stage('Tests') {
-                parallel(
-                    'javascript flow': {
+                parallelInstrumentationTests["javascript flow"] = {
+                    run: {
                         runCmdOnDockerImage(jsImageName, 'yarn run flow check')
-                    },
-                    'javascript tests': {
-                        runCmdOnDockerImage(jsImageName, 'yarn test --maxWorkers=4')
-                    },
-                    'android integration tests': {
-                        runCmdOnDockerImage(androidImageName, '/app/scripts/docker/run-android-docker-instrumentation-tests.sh', '--privileged')
-                    },
-                    'android unit tests': {
-                        runCmdOnDockerImage(androidImageName, './app/scripts/docker/run-android-docker-unit-tests.sh', '--privileged')
-                    },
-                    'android e2e tests': {
-                        runCmdOnDockerImage(androidImageName, './app/scripts/docker/run-ci-e2e-tests.js --android', '--privileged')
                     }
-                )
+                }
+
+                parallelInstrumentationTests["javascript tests"] = {
+                    run: {
+                        runCmdOnDockerImage(jsImageName, 'yarn test --maxWorkers=4')
+                    }
+                }
+
+                parallelInstrumentationTests["android unit tests"] = {
+                    run: {
+                        runCmdOnDockerImage(androidImageName, 'bash /app/scripts/run-android-docker-unit-tests.sh', '--privileged')
+                    }
+                }
+
+                parallelInstrumentationTests["android e2e tests"] = {
+                    run: {
+                        runCmdOnDockerImage(androidImageName, 'bash /app/scripts/docker/run-ci-e2e-tests.js --android', '--privileged')
+                    }
+                }
+
+                // run all tests in parallel
+                parallel(parallelInstrumentationTests)
             }
 
 
-            stage('Cleanup') {
-                cleanupImage(buildInfo.image.name, jsTag)
+            stage('Cleanup') { cleanupImage(buildInfo.image.name, jsTag)
                 cleanupImage(buildInfo.image.name, androidTag)
             }
         } catch(err) {
