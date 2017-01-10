@@ -121,7 +121,7 @@ def runStages() {
 
                 parallelInstrumentationTests["android e2e tests"] = {
                     run: {
-                        runCmdOnDockerImage(androidImageName, 'bash /app/scripts/docker/run-ci-e2e-tests.js --android', '--privileged')
+                        runCmdOnDockerImage(androidImageName, 'bash /app/scripts/docker/run-ci-e2e-tests.sh --android', '--privileged')
                     }
                 }
 
