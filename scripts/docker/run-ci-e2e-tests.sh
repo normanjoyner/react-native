@@ -69,8 +69,14 @@ fi
 
 if [ $RUN_ANDROID -ne 0 ]; then
     set +ex
+
+    AVD_UUID=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1)
+
+    # create virtual device
+    echo no | android create avd -n $AVD_UUID -f -t android-19 --abi default/armeabi-v7a
+
     # emulator setup
-    emulator64-arm -avd testAVD -no-skin -no-audio -no-window -no-boot-anim &
+    emulator64-arm -avd $AVD_UUID -no-skin -no-audio -no-window -no-boot-anim &
     bootanim=""
     until [[ "$bootanim" =~ "stopped" ]]; do
         sleep 5
@@ -162,12 +168,12 @@ cd $ROOT
 rm $IOS_MARKER
 rm $ANDROID_MARKER
 
-if [[ -v SERVER_PID ]]; then
+if kill -0 $SERVER_PID; then
   echo "Killing packager $SERVER_PID"
   kill -9 $SERVER_PID
 fi
 
-if [[ -v APPIUM_PID ]]; then
+if kill -0 $APPIUM_PID; then
   echo "Killing appium $APPIUM_PID"
   kill -9 $APPIUM_PID
 fi
