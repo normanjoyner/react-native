@@ -28,6 +28,11 @@ while :; do
       shift
       ;;
 
+    --js)
+      RUN_JS=1
+      shift
+      ;;
+
     --skip-cli-install)
       RUN_CLI_INSTALL=0
       shift
@@ -109,6 +114,7 @@ fi
 
 cd EndToEndTest
 
+# android tests
 if [ $RUN_ANDROID -ne 0 ]; then
   echo "Running an Android e2e test"
   echo "Installing e2e framework"
@@ -159,8 +165,25 @@ if [ $RUN_ANDROID -ne 0 ]; then
 
 fi
 
+# ios tests
 if [ $RUN_IOS -ne 0 ]; then
   echo "Running ios e2e tests not yet implemented for docker!"
+fi
+
+# js tests
+if [ $RUN_JS -ne 0 ]; then
+  # Check the packager produces a bundle (doesn't throw an error)
+  REACT_NATIVE_MAX_WORKERS=1 react-native bundle --platform android --dev true --entry-file index.android.js --bundle-output android-bundle.js
+  if [ $? -ne 0 ]; then
+    echo "Could not build android bundle"
+    exit 1
+  fi
+
+  REACT_NATIVE_MAX_WORKERS=1 react-native bundle --platform ios --dev true --entry-file index.ios.js --bundle-output ios-bundle.js
+  if [ $? -ne 0 ]; then
+    echo "Could not build iOS bundle"
+    exit 1
+  fi
 fi
 
 # cleanup
