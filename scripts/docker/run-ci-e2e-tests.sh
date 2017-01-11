@@ -168,12 +168,12 @@ cd $ROOT
 rm $IOS_MARKER
 rm $ANDROID_MARKER
 
-if [[ -v SERVER_PID ]]; then
+if kill -0 $SERVER_PID; then
   echo "Killing packager $SERVER_PID"
   kill -9 $SERVER_PID
 fi
 
-if [[ -v APPIUM_PID ]]; then
+if kill -0 $APPIUM_PID; then
   echo "Killing appium $APPIUM_PID"
   kill -9 $APPIUM_PID
 fi

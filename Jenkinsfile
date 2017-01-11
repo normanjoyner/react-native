@@ -87,7 +87,7 @@ def runStages() {
                 jsImageName = "${buildInfo.image.name}:${jsTag}"
                 androidImageName = "${buildInfo.image.name}:${androidTag}"
 
-                parallelInstrumentationTests = getParallelInstrumentationTests('./ReactAndroid/src/androidTest/java/com/facebook/react/tests', 1, androidImageName)
+                parallelInstrumentationTests = getParallelInstrumentationTests('./ReactAndroid/src/androidTest/java/com/facebook/react/tests', 3, androidImageName)
 
                 parallel(
                     'javascript build': {
