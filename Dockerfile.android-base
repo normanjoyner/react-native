@@ -76,6 +76,3 @@ RUN ln -s /opt/android/platform-tools/adb /usr/bin/adb
 
 # clean up unnecessary directories
 RUN rm -rf /opt/android/system-images/android-19/default/x86
-
-# create virtual device
-RUN echo no | android create avd -n testAVD -f -t android-19 --abi default/armeabi-v7a
