@@ -121,7 +121,7 @@ def runStages() {
 
                 parallelInstrumentationTests["documentation tests"] = {
                     run: {
-                        runCmdOnDockerImage(jsImageName, 'cd website && npm test')
+                        runCmdOnDockerImage(jsImageName, 'cd website && yarn test')
                     }
                 }
 

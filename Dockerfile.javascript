@@ -15,6 +15,6 @@ RUN npm install yarn@$YARN_VERSION -g
 RUN yarn install --ignore-engines --pure-lockfile
 
 WORKDIR website
-RUN yarn install --ignore-engines --pure-lockfile
+RUN npm install
 
 WORKDIR /app
