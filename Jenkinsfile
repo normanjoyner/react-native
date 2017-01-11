@@ -103,13 +103,31 @@ def runStages() {
             stage('Tests') {
                 parallelInstrumentationTests["javascript flow"] = {
                     run: {
-                        runCmdOnDockerImage(jsImageName, 'yarn run flow check')
+                        runCmdOnDockerImage(jsImageName, 'yarn run flow -- check')
                     }
                 }
 
                 parallelInstrumentationTests["javascript tests"] = {
                     run: {
                         runCmdOnDockerImage(jsImageName, 'yarn test --maxWorkers=4')
+                    }
+                }
+
+                parallelInstrumentationTests["code analysis"] = {
+                    run: {
+                        runCmdOnDockerImage(jsImageName, 'bash /app/scripts/docker/run-js-docker-code-analysis.sh')
+                    }
+                }
+
+                parallelInstrumentationTests["documentation tests"] = {
+                    run: {
+                        runCmdOnDockerImage(jsImageName, 'cd website && npm test')
+                    }
+                }
+
+                parallelInstrumentationTests["documentation generation"] = {
+                    run: {
+                        runCmdOnDockerImage(jsImageName, 'cd website && node ./server/generate.js')
                     }
                 }
 
@@ -121,7 +139,7 @@ def runStages() {
 
                 parallelInstrumentationTests["android e2e tests"] = {
                     run: {
-                        runCmdOnDockerImage(androidImageName, 'bash /app/scripts/docker/run-ci-e2e-tests.sh --android', '--privileged')
+                        runCmdOnDockerImage(androidImageName, 'bash /app/scripts/docker/run-ci-e2e-tests.sh --android')
                     }
                 }
 
@@ -129,9 +147,23 @@ def runStages() {
                 parallel(parallelInstrumentationTests)
             }
 
+            stage('Test Report') {
+                parallel(
+                    'android': {
+                        runCmdOnDockerImage(androidImageName, 'bash /app/scripts/docker/generate-test-report.sh')
+                    }
+                )
+            }
 
-            stage('Cleanup') { cleanupImage(buildInfo.image.name, jsTag)
-                cleanupImage(buildInfo.image.name, androidTag)
+            stage('Cleanup') {
+                parallel(
+                    'javascript': {
+                        cleanupImage(buildInfo.image.name, jsTag)
+                    },
+                    'android': {
+                        cleanupImage(buildInfo.image.name, androidTag)
+                    }
+                )
             }
         } catch(err) {
             cleanupImage(buildInfo.image.name, jsTag)
