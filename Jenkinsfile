@@ -113,11 +113,13 @@ def runStages() {
                     }
                 }
 
+/*
                 parallelInstrumentationTests["code analysis"] = {
                     run: {
                         runCmdOnDockerImage(jsImageName, 'bash /app/scripts/docker/run-js-docker-code-analysis.sh')
                     }
                 }
+*/
 
                 parallelInstrumentationTests["documentation tests"] = {
                     run: {
