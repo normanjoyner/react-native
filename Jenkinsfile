@@ -149,14 +149,6 @@ def runStages() {
                 parallel(parallelInstrumentationTests)
             }
 
-            stage('Test Report') {
-                parallel(
-                    'android': {
-                        runCmdOnDockerImage(androidImageName, 'bash /app/scripts/docker/generate-test-report.sh')
-                    }
-                )
-            }
-
             stage('Cleanup') {
                 parallel(
                     'javascript': {
